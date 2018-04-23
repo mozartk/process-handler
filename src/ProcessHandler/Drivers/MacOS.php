@@ -6,13 +6,16 @@ use Craftpip\ProcessHandler\Process as Process2;
 use Symfony\Component\Process\Process;
 
 class MacOS implements DriversInterface {
+
+    const defaultOptions = "pid,time,rss,user,sess,args";
+    private $options;
+
     /**
      * @return \Craftpip\ProcessHandler\Process[]
      */
-    protected $options = "pid,time,rss,user,sess,args";
-
     function getAllProcesses () {
-        $process = new Process("ps -eo $this->options");
+        $this->validate();
+        $process = new Process("ps -eo ".$this->options);
         $process->run();
         $op = trim($process->getOutput());
 
@@ -25,11 +28,43 @@ class MacOS implements DriversInterface {
      * @return \Craftpip\ProcessHandler\Process[]
      */
     function getProcessByPid ($pid) {
+        $this->validate();
         $process = new Process("ps -p $pid -o $this->options");
         $process->run();
         $op = trim($process->getOutput());
 
         return $this->parse($op);
+    }
+
+    /**
+     * Set parameters using ps call.
+     *
+     * @param $options
+     *
+     */
+    public function setOption($options = "pid,time,rss,user,sess,args") {
+        $this->options = $options;
+    }
+
+    /**
+     * get parameters when ps call.
+     *
+     * @return String
+     */
+    public function getOption() {
+        return $this->options;
+    }
+
+    /**
+     * Checking options parameter.
+     *
+     * @return String
+     */
+    private function validate() {
+        $opt = $this->getOption();
+        if(trim($opt) === ""){
+            $this->setOption(self::defaultOptions);
+        }
     }
 
     /**
@@ -39,7 +74,6 @@ class MacOS implements DriversInterface {
      */
     private function parse ($output) {
         $op = explode("\n", $output);
-
 
         $processes = [];
         foreach ($op as $k => $item) {
